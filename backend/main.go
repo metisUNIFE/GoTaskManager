@@ -17,6 +17,7 @@ type Tasks struct {
 }
 
 type taskList struct {
+	ID          uint   `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Priority    int8   `json:"priority"`
@@ -28,6 +29,22 @@ func getTasks(c *gin.Context) {
 	DB.Model(&Tasks{}).Scan(&tasks)
 
 	c.JSON(http.StatusOK, tasks)
+}
+
+func deleteTaskByID(c *gin.Context) {
+	id := c.Param("id")
+	DB.Unscoped().Delete(&Tasks{}, id)
+	c.JSON(http.StatusOK, gin.H{"message": "Task deleted"})
+}
+
+func updateTaskByID(c *gin.Context) {
+	id := c.Param("id")
+	var updateTask Tasks
+	if err := c.ShouldBindJSON(&updateTask); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	DB.Model(&Tasks{}).Where("id = ?", id).Update("priority", updateTask)
 }
 
 func postTask(c *gin.Context) {
@@ -51,7 +68,7 @@ var DB *gorm.DB
 
 func main() {
 
-	dsn := "root:1234@tcp(localhost:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:1234@tcp(localhost:3305)/task_manager?charset=utf8mb4&parseTime=True&loc=Local"
 
 	var err error
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -70,6 +87,8 @@ func main() {
 	r := gin.Default()
 	r.GET("/tasks", getTasks)
 	r.POST("/tasks", postTask)
+	r.PATCH("/tasks/:id", updateTaskByID)
+	r.DELETE("/tasks/:id", deleteTaskByID)
 
 	r.Run(":8080")
 }
