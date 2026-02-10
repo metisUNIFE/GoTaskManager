@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+
+	"time"
 )
 
 type Tasks struct {
@@ -85,7 +88,15 @@ func main() {
 	fmt.Println("Database migration complete")
 
 	r := gin.Default()
-	r.GET("/tasks", getTasks)
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{"http://localhost:5173"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Origin", "Content-Length", "Content-Type"},
+		MaxAge:       12 * time.Hour,
+	}))
+
+	r.GET("/api/tasks", getTasks)
 	r.POST("/tasks", postTask)
 	r.PATCH("/tasks/:id", updateTaskByID)
 	r.DELETE("/tasks/:id", deleteTaskByID)

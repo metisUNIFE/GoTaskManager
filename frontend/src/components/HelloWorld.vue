@@ -1,43 +1,58 @@
 <script setup>
-import { ref } from 'vue'
+import {onMounted, ref} from 'vue'
+import api from "@/service/api.js";
 
-defineProps({
-  msg: String,
+const taskList = ref([]);
+
+onMounted(async() => {
+  try{
+    const response = await api.getTasks.getAll();
+    taskList.value = response.data;
+  }catch(error){
+    console.log(error);
+  }
 })
 
-const count = ref(0)
 </script>
 
 <template>
-  <h1>{{ msg }}</h1>
 
-  <div class="card">
-    <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
-      Edit
-      <code>components/HelloWorld.vue</code> to test HMR
-    </p>
+  <div class="task-list">
+    <h1 class="titolo">Task Manager</h1>
+    <div class="task-container">
+      <div class="task-card" v-for="task in taskList" :key="task.id">
+        <h2 class="task-title">{{task.title}}</h2>
+        <span class="task-priority">Priority: {{task.priority}}</span>
+        <span class="task-description">Description:
+          <br><span>{{task.description}} </span>
+        </span>
+      </div>
+    </div>
+
   </div>
 
-  <p>
-    Check out
-    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
-      >create-vue</a
-    >, the official Vue + Vite starter
-  </p>
-  <p>
-    Learn more about IDE Support for Vue in the
-    <a
-      href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support"
-      target="_blank"
-      >Vue Docs Scaling up Guide</a
-    >.
-  </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
 </template>
 
 <style scoped>
-.read-the-docs {
-  color: #888;
+.task-list {
+  align-content: flex-start;
+}
+.titolo {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.task-container {
+  display: flex;
+  flex-direction: column;
+}
+.task-card {
+  display: flex;
+  flex-direction: column;
+}
+.task-title {
+  margin-right: 10px;
+}
+.task-priority {
+  margin-right: 10px;
 }
 </style>
