@@ -14,7 +14,7 @@ import (
 
 type Tasks struct {
 	gorm.Model
-	Title       string `gorm:"unique;not null" json:"title"`
+	Title       string `gorm:"unique;not null; size:100" json:"title"`
 	Description string `gorm:"size:500" json:"description"`
 	Priority    int8   `json:"priority"`
 }
@@ -97,7 +97,7 @@ func main() {
 	}))
 
 	r.GET("/api/tasks", getTasks)
-	r.POST("/tasks", postTask)
+	r.POST("/api/tasks", postTask)
 	r.PATCH("/tasks/:id", updateTaskByID)
 	r.DELETE("/tasks/:id", deleteTaskByID)
 

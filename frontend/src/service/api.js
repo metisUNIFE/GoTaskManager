@@ -18,5 +18,11 @@ export default{
             return api.get('/tasks');
         }
     },
+    sendTask(task){
+        return api.post('/tasks', task);
+    },
+    deleteTask(id){
+        return api.delete(`/tasks/${id}`);
+    }
 
 }
