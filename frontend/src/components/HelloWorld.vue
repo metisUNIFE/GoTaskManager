@@ -2,12 +2,17 @@
 import {onMounted, ref} from 'vue'
 import api from "@/service/api.js";
 
+const popupAnchor = ref(null);
+const popupOpen = ref(false);
+const popupButtons = ['add', 'cancel'];
 const taskList = ref([]);
 const newTask = ref({
   title: "",
   description: "",
   priority: 1
 });
+
+const index = ref(0);
 
 onMounted(async() => {
   try{
@@ -17,6 +22,15 @@ onMounted(async() => {
     console.log(error);
   }
 })
+
+function modalClick(ev){
+  popupAnchor.value = ev.target;
+  popupOpen.value = true;
+}
+
+function modalClose() {
+  popupOpen.value = false;
+}
 
 function addTask() {
   console.log("invio" , JSON.parse(JSON.stringify(newTask.value)));
@@ -28,7 +42,9 @@ function addTask() {
 }
 
 function removeTask(index) {
-  api.deleteTask(index.value);
+  console.log("invio " + index);
+  api.deleteTask(index);
+  location.reload();
 }
 
 
@@ -49,10 +65,14 @@ function removeTask(index) {
           <span class="task-description">Description:
             <br><span>{{task.description}} </span>
           </span>
-          <input type="button" class="task-button" value="Delete Task" @onclick="removeTask(task.id)" />
+          <button class="task-button" value="Delete Task" v-on:click="index = task.id; removeTask(index)">Delete</button>
         </div>
       </div>
     </div>
+
+    <button @onClick="modalClick">New Task</button>
+
+    <Popup> ciao </Popup>
 
     <div class="task-form">
       <form class="form-fill" @submit="addTask">

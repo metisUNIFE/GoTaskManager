@@ -98,8 +98,8 @@ func main() {
 
 	r.GET("/api/tasks", getTasks)
 	r.POST("/api/tasks", postTask)
-	r.PATCH("/tasks/:id", updateTaskByID)
-	r.DELETE("/tasks/:id", deleteTaskByID)
+	r.PATCH("/api/tasks/:id", updateTaskByID)
+	r.DELETE("/api/tasks/:id", deleteTaskByID)
 
 	r.Run(":8080")
 }
