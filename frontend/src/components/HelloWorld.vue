@@ -2,9 +2,7 @@
 import {onMounted, ref} from 'vue'
 import api from "@/service/api.js";
 
-const popupAnchor = ref(null);
 const popupOpen = ref(false);
-const popupButtons = ['add', 'cancel'];
 const taskList = ref([]);
 const newTask = ref({
   title: "",
@@ -23,15 +21,6 @@ onMounted(async() => {
   }
 })
 
-function modalClick(ev){
-  popupAnchor.value = ev.target;
-  popupOpen.value = true;
-}
-
-function modalClose() {
-  popupOpen.value = false;
-}
-
 function addTask() {
   console.log("invio" , JSON.parse(JSON.stringify(newTask.value)));
   api.sendTask(newTask.value)
@@ -47,11 +36,82 @@ function removeTask(index) {
   location.reload();
 }
 
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+
+  const date = new Date(dateString);
+
+  return new Intl.DateTimeFormat('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
 
 </script>
 
 <template>
-  <h1 class="titolo">Task Manager</h1>
+  <div class="base">
+    <h2 class="titolo">Task Manager</h2>
+    <div class="popup-manager">
+      <button class="open-btn" @click="popupOpen = true; console.log(popupOpen)">New Tasks</button>
+      <div v-if="popupOpen" class="popup-overlay">
+        <div class="popup-content" @click.stop>
+          <div class="task-form">
+            <form class="form-fill" @submit="addTask">
+              <input type="text" placeholder="Enter Task Name" v-model="newTask.title" autocomplete="off" required/>
+              <input type="text" placeholder="Enter Task Description" v-model="newTask.description" autocomplete="off" required/>
+              <div class="number-input">
+                <label>
+                  <input type="radio" :value="3" v-model.number="newTask.priority"/>
+                  Bassa
+                </label>
+                <label>
+                  <input type="radio" :value="2" v-model.number="newTask.priority"/>
+                  Media
+                </label>
+                <label>
+                  <input type="radio" :value="1" v-model.number="newTask.priority"/>
+                  Alta
+                </label>
+              </div>
+              <button type="submit" class="submit">Add Task</button>
+            </form>
+          </div>
+          <button class="close-btn" @click="popupOpen = false">Close popup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="task-list">
+      <table class="task-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Priority</th>
+            <th>Description</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="task in taskList" :key="task.id" class="task-list-item">
+            <td>{{ task.title }}</td>
+            <td>{{task.priority}}</td>
+            <td>{{task.description}}</td>
+            <td>{{formatDate(task.created_at)}}</td>
+            <td><button class="task-button" value="Delete Task" v-on:click="index = task.id; removeTask(index)">Delete</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
   <div class="container">
     <div class="task-list">
       <div class="task-container">
@@ -68,32 +128,6 @@ function removeTask(index) {
           <button class="task-button" value="Delete Task" v-on:click="index = task.id; removeTask(index)">Delete</button>
         </div>
       </div>
-    </div>
-
-    <button @onClick="modalClick">New Task</button>
-
-    <Popup> ciao </Popup>
-
-    <div class="task-form">
-      <form class="form-fill" @submit="addTask">
-        <input type="text" placeholder="Enter Task Name" v-model="newTask.title" autocomplete="off" required/>
-        <input type="text" placeholder="Enter Task Description" v-model="newTask.description" autocomplete="off" required/>
-        <div class="number-input">
-        <label>
-          <input type="radio" :value="3" v-model.number="newTask.priority"/>
-          Bassa
-        </label>
-        <label>
-          <input type="radio" :value="2" v-model.number="newTask.priority"/>
-          Media
-        </label>
-        <label>
-          <input type="radio" :value="1" v-model.number="newTask.priority"/>
-          Alta
-        </label>
-        </div>
-        <button type="submit" class="submit">Add Task</button>
-      </form>
     </div>
   </div>
 </template>
@@ -115,8 +149,7 @@ function removeTask(index) {
   align-content: flex-start;
 }
 .titolo {
-  text-align: center;
-  margin-bottom: 20px;
+  margin: 0;
 }
 .task-container {
   display: flex;
@@ -134,10 +167,8 @@ function removeTask(index) {
 .task-priority,
 .task-title,
 .task-description {
-  flex: 1;              /* Ognuno prende 1/3 dello spazio disponibile (crea le colonne) */
-  text-align: center;   /* Il testo dentro ogni colonna è centrato */
-
-  /* Se vuoi essere sicuro che anche il contenuto multilinea sia centrato: */
+  flex: 1;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -161,5 +192,52 @@ function removeTask(index) {
 .form-fill {
   display: flex;
   flex-direction: column;
+}
+
+.task-list-item{
+  border-bottom: #3a3a3a solid 1px;
+  border-top: #646cff solid 1px;
+}
+
+.base{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+.popup-manager{
+
+}
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6); /* Nero al 60% di opacità */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Assicura che stia sopra a tutto il resto del sito */
+}
+
+/* La finestrella centrale */
+.popup-content {
+  background-color: #2a2a2a; /* Colore scuro per intonarsi al tuo tema precedente */
+  color: white;
+  padding: 30px;
+  border-radius: 12px;
+  min-width: 300px;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  text-align: center;
+}
+
+.close-btn {
+  margin-top: 20px;
+  padding: 8px 16px;
+  cursor: pointer;
 }
 </style>

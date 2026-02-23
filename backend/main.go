@@ -24,6 +24,7 @@ type taskList struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Priority    int8   `json:"priority"`
+	CreatedAt   string `json:"created_at"`
 }
 
 func getTasks(c *gin.Context) {
