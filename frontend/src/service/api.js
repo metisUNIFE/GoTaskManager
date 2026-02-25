@@ -23,6 +23,9 @@ export default{
     },
     deleteTask(id){
         return api.delete(`/tasks/${id}`);
+    },
+    updateTask(id, priority){
+        return api.patch(`/tasks/${id}`, priority);
     }
 
 }

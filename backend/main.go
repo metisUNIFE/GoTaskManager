@@ -48,7 +48,7 @@ func updateTaskByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	DB.Model(&Tasks{}).Where("id = ?", id).Update("priority", updateTask)
+	DB.Model(&Tasks{}).Where("id = ?", id).Update("priority", updateTask.Priority)
 }
 
 func postTask(c *gin.Context) {
