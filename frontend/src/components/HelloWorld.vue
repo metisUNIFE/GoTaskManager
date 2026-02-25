@@ -1,7 +1,10 @@
 <script setup>
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import api from "@/service/api.js";
 
+const index = ref(1);
+const page = ref(1);
+const itemsPerPage = ref(8);
 const popupOpen1 = ref(false);
 const popupOpen2 = ref(false);
 const taskList = ref([]);
@@ -13,6 +16,19 @@ const newTask = ref({
 const newPrio = ref({
   priority: 1
 })
+
+const header = ref([
+  {
+    align: 'center',
+    key: 'title',
+    sortable: false,
+    title: 'Task',
+  },
+  { align: 'center', title: 'Priority', key: 'priority' },
+  { align: 'center', title: 'Description', key: 'description' },
+  { align: 'center', title: 'Created', key: 'created_at' },
+  { align: 'center', title: 'Actions', key: 'actions' },
+])
 
 onMounted(async() => {
   try{
@@ -30,6 +46,11 @@ function addTask() {
       console.log(res),
       newTask.value = {title: "", description: "", priority: 1};})
     .catch(err => console.log(err));
+}
+
+function clearForm() {
+  newTask.value = {title: '', description: '', priority: 1};
+  newPrio.value = {priority: 1};
 }
 
 function updateTask(index) {
@@ -62,6 +83,10 @@ const formatDate = (dateString) => {
   }).format(date);
 };
 
+const pageCount = computed(() => {
+  return Math.ceil(taskList.value.length / itemsPerPage.value);
+})
+
 </script>
 
 <template>
@@ -71,7 +96,7 @@ const formatDate = (dateString) => {
         <button class="open-btn" @click="popupOpen1 = true">New Tasks</button>
         <div v-if="popupOpen1" class="popup-overlay">
           <div class="popup-content" @click.stop>
-            <button class="close-btn" @click="popupOpen1 = false">
+            <button class="close-btn" @click="popupOpen1 = false" v-on:click="clearForm">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -83,9 +108,9 @@ const formatDate = (dateString) => {
                 <v-text-field v-model="newTask.description" label="Description" :counter="150" required></v-text-field>
                 <div class="number-input">
                   <v-radio-group class="number-input" inline v-model="newTask.priority">
-                    <v-radio label="Low" color="red" :value="3"></v-radio>
+                    <v-radio label="Low" color="green" :value="3"></v-radio>
                     <v-radio label="Medium" color="orange" :value="2"></v-radio>
-                    <v-radio label="High" color="green" :value="1"></v-radio>
+                    <v-radio label="High" color="red" :value="1"></v-radio>
                   </v-radio-group>
                 </div>
                 <button type="submit" class="submit">Add Task</button>
@@ -96,78 +121,71 @@ const formatDate = (dateString) => {
       </div>
     </div>
 
-    <div class="container">
-      <div class="task-list">
-        <table class="task-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Priority</th>
-              <th>Description</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="task in taskList" :key="task.id" class="task-list-item">
-              <td>{{ task.title }}</td>
-              <td>{{task.priority}}</td>
-              <td>{{task.description}}</td>
-              <td>{{formatDate(task.created_at)}}</td>
-              <td class="actions-btns">
-                <button class="icon-btn edit-btn" @click="popupOpen2 = true" title="Modifica Task">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                  </svg>
-                </button>
-                <div v-if="popupOpen2" class="popup-overlay">
-                  <div class="popup-content" @click.stop>
-                    <div class="task-form">
-                      <form @submit="updateTask(task.id)">
-                        <div class="number-input">
-                          <v-radio-group class="number-input" inline v-model="newPrio.priority">
-                            <v-radio label="Low" color="red" :value="3"></v-radio>
-                            <v-radio label="Medium" color="orange" :value="2"></v-radio>
-                            <v-radio label="High" color="green" :value="1"></v-radio>
-                          </v-radio-group>
-                        </div>
-                        <button type="submit" class="submit">Modify Priority</button>
-                      </form>
-                    </div>
-                    <button class="close-btn" @click="popupOpen2 = false">Close popup</button>
-                  </div>
-                </div>
+  <v-data-table v-model:page="page" :headers="header" :items="taskList" :items-per-page="itemsPerPage">
+    <template v-slot:item.priority="{ item }">
+      <span class="priority-bubble" :class="{
+                  'high' : item.priority === 1,
+                  'medium' : item.priority === 2,
+                  'low' : item.priority === 3,
+                }">{{ item.priority }}</span>
+    </template>
+    <template v-slot:item.created_at="{ item }">
+      {{ formatDate(item.created_at) }}
+    </template>
+    <template v-slot:item.actions="{ item }">
+      <div class="actions-btns">
 
-                <button class="icon-btn delete-btn" @click="removeTask(task.id)" title="Elimina Task">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <button class="icon-btn edit-btn" @click="popupOpen2 = true; index = item.id" title="Modifica Task">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+
+        <button class="icon-btn delete-btn" @click="removeTask(item.id)" title="Elimina Task">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
       </div>
+    </template>
+    <template v-slot:bottom>
+      <div class="text-center pt-2">
+        <v-pagination
+            v-model="page"
+            :length="pageCount"
+        ></v-pagination>
+      </div>
+    </template>
+  </v-data-table>
+
+  <div v-if="popupOpen2" class="popup-overlay">
+    <div class="popup-content" @click.stop>
+      <div class="task-form">
+        <form @submit="updateTask(index)">
+          <div class="number-input">
+            <v-radio-group class="number-input" inline v-model="newPrio.priority">
+              <v-radio label="Low" color="green" :value="3"></v-radio>
+              <v-radio label="Medium" color="orange" :value="2"></v-radio>
+              <v-radio label="High" color="red" :value="1"></v-radio>
+            </v-radio-group>
+          </div>
+          <button type="submit" class="submit">Modify Priority</button>
+        </form>
+      </div>
+      <button class="close-btn" @click="popupOpen2 = false" v-on:click="clearForm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
+  </div>
 </template>
 
 <style scoped>
-.container {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 40px;
-  padding: 20px;
-  width: 100%;      /* Occupa tutto lo spazio orizzontale */
-  max-width: 100%;  /* Assicurati che non venga limitato */
-  box-sizing: border-box;
-}
-.task-list {
-  align-content: flex-start;
-}
 .titolo {
   margin: 0;
 }
@@ -184,19 +202,8 @@ const formatDate = (dateString) => {
 .form-fill {
   display: flex;
   flex-direction: column;
-}
-.task-table{
-  border-collapse: collapse;
-  width: 100%;
-}
-.task-list-item{
-  border-bottom: 1px solid #727272;
-  border-top: 1px solid #727272;
-}
-.task-table tr,
-.task-table th{
-  padding: 12px;
-  text-align: center;
+  margin-top: 20px;
+  padding-top: 10px;
 }
 .icon-btn {
   background: none;
@@ -263,11 +270,13 @@ const formatDate = (dateString) => {
   max-width: 700px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.5);
   text-align: center;
+  position: relative;
 }
 
 .close-btn {
   top: 15px;
-  left: 15px;
+  right: 15px;
+  position: absolute;
   background: none;
   border: none;
   cursor: pointer;
@@ -283,5 +292,25 @@ const formatDate = (dateString) => {
   transform: scale(1.1);
   color: white;
   background-color: #ff4d4d;
+}
+.priority-bubble {
+  padding: 6px 14px;
+  border-radius: 20px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  display: inline-block;
+  min-width: 50px;
+}
+
+.low {
+  background-color: #0c8a07;
+}
+.medium {
+  background-color: #f0ad4e;
+}
+.high {
+  background-color: #d10000;
 }
 </style>
