@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type Tasks struct {
+type Task struct {
 	gorm.Model
 	Title       string `gorm:"unique;not null; size:100" json:"title"`
 	Description string `gorm:"size:500" json:"description"`
@@ -27,38 +27,59 @@ type taskList struct {
 	CreatedAt   string `json:"created_at"`
 }
 
-func getTasks(c *gin.Context) {
+type TaskHandler struct {
+	DB *gorm.DB
+}
+
+func (h *TaskHandler) getTasks(c *gin.Context) {
 	var tasks []taskList
 
-	DB.Model(&Tasks{}).Scan(&tasks)
+	if err := h.DB.Model(&Task{}).Scan(&tasks).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, tasks)
 }
 
-func deleteTaskByID(c *gin.Context) {
+func (h *TaskHandler) deleteTaskByID(c *gin.Context) {
 	id := c.Param("id")
-	DB.Unscoped().Delete(&Tasks{}, id)
+	result := h.DB.Unscoped().Delete(&Task{}, id)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Task deleted"})
 }
 
-func updateTaskByID(c *gin.Context) {
+func (h *TaskHandler) updateTaskByID(c *gin.Context) {
 	id := c.Param("id")
-	var updateTask Tasks
+	var updateTask struct {
+		Priority int8 `json:"priority"`
+	}
+
 	if err := c.ShouldBindJSON(&updateTask); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	DB.Model(&Tasks{}).Where("id = ?", id).Update("priority", updateTask.Priority)
+
+	result := h.DB.Model(&Task{}).Where("id = ?", id).Update("priority", updateTask.Priority)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Task updated"})
 }
 
-func postTask(c *gin.Context) {
-	var newTask Tasks
+func (h *TaskHandler) postTask(c *gin.Context) {
+	var newTask Task
 	if err := c.ShouldBindJSON(&newTask); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	result := DB.Create(&newTask)
+	result := h.DB.Create(&newTask)
 	if result.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
 		return
@@ -68,25 +89,25 @@ func postTask(c *gin.Context) {
 
 }
 
-var DB *gorm.DB
-
 func main() {
 
 	dsn := "root:1234@tcp(localhost:3305)/task_manager?charset=utf8mb4&parseTime=True&loc=Local"
 
-	var err error
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+
 	if err != nil {
-		panic(err)
+		panic("Cannot connect to database")
 	}
 
 	fmt.Println("Database connection established")
 
-	err = DB.AutoMigrate(&Tasks{})
+	err = db.AutoMigrate(&Task{})
 	if err != nil {
-		panic(err)
+		panic("Database migration failed")
 	}
 	fmt.Println("Database migration complete")
+
+	taskHandler := &TaskHandler{DB: db}
 
 	r := gin.Default()
 
@@ -97,10 +118,10 @@ func main() {
 		MaxAge:       12 * time.Hour,
 	}))
 
-	r.GET("/api/tasks", getTasks)
-	r.POST("/api/tasks", postTask)
-	r.PATCH("/api/tasks/:id", updateTaskByID)
-	r.DELETE("/api/tasks/:id", deleteTaskByID)
+	r.GET("/api/tasks", taskHandler.getTasks)
+	r.POST("/api/tasks", taskHandler.postTask)
+	r.PATCH("/api/tasks/:id", taskHandler.updateTaskByID)
+	r.DELETE("/api/tasks/:id", taskHandler.deleteTaskByID)
 
 	r.Run(":8080")
 }
